@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>M.K TECH | Admin App</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- FIREBASE COMPAT SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .app-screen { display: none; }
+        .app-screen.active { display: block; }
+    </style>
+</head>
+<body class="text-slate-900 min-h-screen max-w-md mx-auto bg-white relative pb-24 border-x border-slate-200/60 shadow-md">
+
+    <!-- ================= AUTH GATEWAY ================= -->
+    <div id="authScreen" class="fixed inset-0 bg-white z-50 flex items-center justify-center p-5 max-w-md mx-auto">
+        <div class="bg-slate-50 border border-slate-200 w-full rounded-3xl p-6 shadow-xl space-y-4">
+            <div class="text-center space-y-1">
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black text-sm">MK</div>
+                <h1 class="text-base font-bold text-slate-900">Admin Login</h1>
+                <p class="text-xs text-slate-400">M.K TECH Control Center</p>
+            </div>
+
+            <form id="loginForm" onsubmit="handleAdminLogin(event)" class="space-y-3">
+                <input type="email" id="adminEmail" required placeholder="admin@mktech.pk" class="w-full bg-white border border-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-900">
+                <input type="password" id="adminPassword" required placeholder="Password" class="w-full bg-white border border-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-900">
+                <button type="submit" class="w-full py-3 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-md hover:bg-slate-800 transition">Login</button>
+            </form>
+            <div id="loginError" class="text-center text-xs text-rose-500 hidden font-semibold"></div>
+        </div>
+    </div>
+
+
+    <!-- ================= MAIN ADMIN APP CONTAINER ================= -->
+    <div id="dashboardScreen" class="hidden min-h-screen flex flex-col">
+
+        <!-- TOP APP HEADER -->
+        <header class="px-5 pt-5 pb-3 flex items-center justify-between bg-white/90 backdrop-blur-md sticky top-0 z-30 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-xl bg-slate-900 text-white font-black flex items-center justify-center text-xs">MK</div>
+                <h1 id="screenTitle" class="text-base font-bold text-slate-900">Dashboard</h1>
+            </div>
+            <button onclick="handleLogout()" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100"><i data-lucide="log-out" class="w-4 h-4"></i></button>
+        </header>
+
+        <!-- ================= SCREENS ================= -->
+
+        <!-- 1. DASHBOARD SCREEN -->
+        <section id="screen-dashboard" class="app-screen active px-5 py-4 space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-xs">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Total Revenue</span>
+                    <h3 id="statRevenue" class="text-base font-black text-slate-900 mt-1">Rs. 0</h3>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-xs">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Total Orders</span>
+                    <h3 id="statOrders" class="text-base font-black text-slate-900 mt-1">0</h3>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-xs">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Pending Orders</span>
+                    <h3 id="statPending" class="text-base font-black text-amber-600 mt-1">0</h3>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-xs">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Total Products</span>
+                    <h3 id="statProducts" class="text-base font-black text-slate-900 mt-1">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 text-white p-5 rounded-3xl space-y-2 shadow-lg">
+                <span class="text-[10px] uppercase font-bold tracking-widest text-slate-400">M.K TECH System</span>
+                <h2 class="text-lg font-extrabold">Store is Live & Synced ⚡</h2>
+                <p class="text-xs text-slate-300">Firebase Firestore connection active with real-time listeners.</p>
+            </div>
+        </section>
+
+
+        <!-- 2. ORDERS SCREEN -->
+        <section id="screen-orders" class="app-screen px-5 py-4 space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Customer Orders</h2>
+                <span id="orderCountBadge" class="text-[10px] bg-slate-100 px-2.5 py-1 rounded-full font-bold text-slate-600">0 Orders</span>
+            </div>
+            <div id="ordersList" class="space-y-3">
+                <!-- Dynamic Orders -->
+            </div>
+        </section>
+
+
+        <!-- 3. PRODUCTS SCREEN (Grid View) -->
+        <section id="screen-products" class="app-screen px-5 py-4 space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Live Inventory</h2>
+                <button onclick="switchTab('add')" class="text-xs font-semibold text-slate-900 bg-slate-100 px-3 py-1.5 rounded-xl">+ Add New</button>
+            </div>
+            <div id="productsGrid" class="grid grid-cols-2 gap-3">
+                <!-- Dynamic Products Grid -->
+            </div>
+        </section>
+
+
+        <!-- 4. ADD PRODUCT SCREEN -->
+        <section id="screen-add" class="app-screen px-5 py-4 space-y-4">
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Add New Product</h2>
+            
+            <form id="addProductForm" onsubmit="handleAddProduct(event)" class="space-y-3">
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-500">Product Name</label>
+                    <input type="text" id="pName" required placeholder="e.g., Ultra Smartwatch" class="w-full mt-1 bg-slate-50 border border-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-900">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-500">Price (PKR)</label>
+                        <input type="number" id="pPrice" required placeholder="6500" class="w-full mt-1 bg-slate-50 border border-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-900">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-500">ID Number</label>
+                        <input type="number" id="pId" required placeholder="7" class="w-full mt-1 bg-slate-50 border border-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-900">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-500">Category</label>
+                        <select id="pCategory" class="w-full mt-1 bg-slate-50 border border-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-900">
+                            <option value="watches">Watches</option>
+                            <option value="earbuds">Earbuds</option>
+                            <option value="cameras">Cameras</option>
+                            <option value="gaming">Gaming</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-500">Stock Qty</label>
+                        <input type="number" id="pStock" required placeholder="25" class="w-full mt-1 bg-slate-50 border border-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-900">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-500">Select Image from Gallery</label>
+                    <input type="file" id="pImageFile" accept="image/*" required class="w-full mt-1 bg-slate-50 border border-slate-200 text-xs p-2 rounded-xl text-slate-600 file:bg-slate-900 file:text-white file:border-0 file:rounded-lg file:px-3 file:py-1.5 cursor-pointer">
+                </div>
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-500">Description</label>
+                    <textarea id="pDesc" rows="3" placeholder="Product features..." class="w-full mt-1 bg-slate-50 border border-slate-200 text-xs p-3 rounded-xl focus:outline-none focus:ring-1 focus:ring-slate-900"></textarea>
+                </div>
+                <button type="submit" class="w-full py-3.5 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-md hover:bg-slate-800 transition">Save Product to Firestore</button>
+            </form>
+        </section>
+
+
+        <!-- 5. USERS SCREEN -->
+        <section id="screen-users" class="app-screen px-5 py-4 space-y-4">
+            <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Admin Profile & Users</h2>
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-slate-900 text-white font-bold flex items-center justify-center text-xs">MK</div>
+                <div>
+                    <h3 id="profileEmail" class="text-xs font-bold text-slate-900">admin@mktech.pk</h3>
+                    <p class="text-[10px] text-slate-400">Authenticated Store Manager</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+
+    <!-- ================= BOTTOM NAVIGATION BAR (5 BUTTONS) ================= -->
+    <nav class="fixed bottom-0 inset-x-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex items-center justify-around z-40">
+        <button onclick="switchTab('dashboard')" class="nav-btn active flex flex-col items-center gap-1 text-slate-900" data-tab="dashboard">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            <span class="text-[9px] font-semibold">Dashboard</span>
+        </button>
+        <button onclick="switchTab('orders')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-900" data-tab="orders">
+            <i data-lucide="package" class="w-5 h-5"></i>
+            <span class="text-[9px] font-semibold">Orders</span>
+        </button>
+        <button onclick="switchTab('products')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-900" data-tab="products">
+            <i data-lucide="grid" class="w-5 h-5"></i>
+            <span class="text-[9px] font-semibold">Products</span>
+        </button>
+        <button onclick="switchTab('add')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-900" data-tab="add">
+            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+            <span class="text-[9px] font-semibold">Add</span>
+        </button>
+        <button onclick="switchTab('users')" class="nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-900" data-tab="users">
+            <i data-lucide="users" class="w-5 h-5"></i>
+            <span class="text-[9px] font-semibold">Users</span>
+        </button>
+    </nav>
+
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyAVgOscvlM0tcLmkAsKBCciqkC5O3AAIOU",
+          authDomain: "mk-tech-3d536.firebaseapp.com",
+          projectId: "mk-tech-3d536",
+          storageBucket: "mk-tech-3d536.firebasestorage.app",
+          messagingSenderId: "419394180062",
+          appId: "1:419394180062:web:b59e2536800babf657034f",
+          measurementId: "G-SF1YS17QXH"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let allOrders = [];
+        let allProducts = [];
+
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('dashboardScreen').classList.remove('hidden');
+                document.getElementById('profileEmail').innerText = user.email;
+                fetchData();
+            } else {
+                document.getElementById('dashboardScreen').classList.add('hidden');
+                document.getElementById('authScreen').classList.remove('hidden');
+            }
+        });
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('adminEmail').value.trim();
+            const password = document.getElementById('adminPassword').value.trim();
+            auth.signInWithEmailAndPassword(email, password).catch(err => {
+                const box = document.getElementById('loginError');
+                box.innerText = "❌ " + err.message;
+                box.classList.remove('hidden');
+            });
+        }
+
+        function handleLogout() { auth.signOut(); }
+
+        // Tab Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.app-screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(`screen-${tabId}`).classList.add('active');
+
+            const titles = { dashboard: 'Dashboard', orders: 'Customer Orders', products: 'Live Inventory', add: 'Add Product', users: 'Users & Profile' };
+            document.getElementById('screenTitle').innerText = titles[tabId];
+
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                if (b.dataset.tab === tabId) {
+                    b.className = 'nav-btn active flex flex-col items-center gap-1 text-slate-900';
+                } else {
+                    b.className = 'nav-btn flex flex-col items-center gap-1 text-slate-400 hover:text-slate-900';
+                }
+            });
+            window.scrollTo(0,0);
+        }
+
+        // Fetch Data from Firestore
+        function fetchData() {
+            db.collection("orders").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+                allOrders = [];
+                snapshot.forEach(doc => allOrders.push({ docId: doc.id, ...doc.data() }));
+                renderOrders(allOrders);
+                updateStats();
+            });
+
+            db.collection("products").onSnapshot((snapshot) => {
+                allProducts = [];
+                snapshot.forEach(doc => allProducts.push({ docId: doc.id, ...doc.data() }));
+                renderProductsGrid(allProducts);
+                updateStats();
+            });
+        }
+
+        function updateStats() {
+            const totalRev = allOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+            const pending = allOrders.filter(o => o.status === 'pending').length;
+            document.getElementById('statRevenue').innerText = `Rs. ${totalRev.toLocaleString()}`;
+            document.getElementById('statOrders').innerText = allOrders.length;
+            document.getElementById('statPending').innerText = pending;
+            document.getElementById('statProducts').innerText = allProducts.length;
+            document.getElementById('orderCountBadge').innerText = `${allOrders.length} Orders`;
+        }
+
+        // Add Product via Gallery Base64
+        function handleAddProduct(e) {
+            e.preventDefault();
+            const file = document.getElementById('pImageFile').files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const newProd = {
+                    id: Number(document.getElementById('pId').value),
+                    name: document.getElementById('pName').value,
+                    price: Number(document.getElementById('pPrice').value),
+                    category: document.getElementById('pCategory').value,
+                    stock: Number(document.getElementById('pStock').value),
+                    image: evt.target.result,
+                    description: document.getElementById('pDesc').value,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                db.collection("products").add(newProd).then(() => {
+                    alert("⚡ Product added successfully!");
+                    document.getElementById('addProductForm').reset();
+                    switchTab('products');
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function deleteProduct(docId) {
+            if(confirm("Delete item?")) db.collection("products").doc(docId).delete();
+        }
+
+        // Render Orders List with Full Details
+        function renderOrders(orders) {
+            const container = document.getElementById('ordersList');
+            container.innerHTML = '';
+            if(orders.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No orders found</p>`;
+                return;
+            }
+
+            orders.forEach(o => {
+                const c = o.customerInfo || {};
+                const itemsList = (o.items || []).map(i => `${i.name} (x${i.qty})`).join(', ');
+
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-900">${o.orderId || 'N/A'}</span>
+                            <span class="font-bold text-emerald-600">Rs. ${(o.totalAmount || 0).toLocaleString()}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-600 space-y-0.5">
+                            <p><strong>Customer:</strong> ${c.name || 'N/A'} (${c.phone || 'N/A'})</p>
+                            <p><strong>Address:</strong> ${c.address || 'N/A'}, ${c.city || 'N/A'}</p>
+                            <p><strong>Items:</strong> ${itemsList}</p>
+                        </div>
+                        <div class="flex justify-between items-center pt-2 border-t border-slate-200/60">
+                            <span class="text-[10px] text-slate-400">${o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}</span>
+                            <select onchange="updateOrderStatus('${o.docId}', this.value)" class="text-[10px] font-bold px-2 py-1 rounded-lg bg-white border border-slate-200 focus:outline-none">
+                                <option value="pending" ${o.status==='pending'?'selected':''}>Pending</option>
+                                <option value="processing" ${o.status==='processing'?'selected':''}>Processing</option>
+                                <option value="shipped" ${o.status==='shipped'?'selected':''}>Shipped</option>
+                                <option value="delivered" ${o.status==='delivered'?'selected':''}>Delivered</option>
+                            </select>
+                        </div>
+                    </div>
+                `);
+            });
+            lucide.createIcons();
+        }
+
+        function updateOrderStatus(docId, newStatus) {
+            db.collection("orders").doc(docId).update({ status: newStatus });
+        }
+
+        // Render Products Grid (4x4 or 2-column clean mobile grid)
+        function renderProductsGrid(prods) {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = '';
+            if(prods.length === 0) {
+                grid.innerHTML = `<p class="text-xs text-slate-400 text-center py-6 col-span-2">No products added yet</p>`;
+                return;
+            }
+
+            prods.forEach(p => {
+                grid.insertAdjacentHTML('beforeend', `
+                    <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 space-y-1.5 relative group">
+                        <div class="w-full aspect-square rounded-xl overflow-hidden bg-slate-200">
+                            <img src="${p.image}" class="w-full h-full object-cover">
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-800 truncate">${p.name}</h4>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-semibold text-slate-900">Rs. ${(p.price || 0).toLocaleString()}</span>
+                            <button onclick="deleteProduct('${p.docId}')" class="p-1 bg-rose-50 text-rose-500 rounded-lg"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </div>
+                `);
+            });
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
