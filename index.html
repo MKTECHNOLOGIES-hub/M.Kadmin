@@ -174,6 +174,85 @@
     </div>
 
 
+    <!-- ================= MODAL: PRODUCT DETAIL & ORDERS VIEW ================= -->
+    <div id="productDetailModal" class="fixed inset-0 bg-white z-50 hidden flex flex-col overflow-y-auto max-w-md mx-auto">
+        <div class="px-5 py-4 flex items-center justify-between border-b border-slate-100 bg-white sticky top-0 z-10">
+            <button onclick="closeProductModal()" class="p-2 -ml-2 text-slate-700"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+            <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Product & Sales Details</h2>
+            <div class="w-5"></div>
+        </div>
+        <div class="p-5 space-y-5 pb-20">
+            <form id="editProductForm" onsubmit="handleUpdateProduct(event)" class="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <input type="hidden" id="editDocId">
+                <div class="w-full aspect-square rounded-2xl overflow-hidden bg-slate-200 mb-2">
+                    <img id="editImagePreview" src="" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <label class="text-[10px] font-semibold text-slate-500">Product Name</label>
+                    <input type="text" id="editName" required class="w-full mt-1 bg-white border border-slate-200 text-xs p-2.5 rounded-xl">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-semibold text-slate-500">Price (PKR)</label>
+                        <input type="number" id="editPrice" required class="w-full mt-1 bg-white border border-slate-200 text-xs p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-semibold text-slate-500">Stock</label>
+                        <input type="number" id="editStock" required class="w-full mt-1 bg-white border border-slate-200 text-xs p-2.5 rounded-xl">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-semibold text-slate-500">Description</label>
+                    <textarea id="editDesc" rows="2" class="w-full mt-1 bg-white border border-slate-200 text-xs p-2.5 rounded-xl"></textarea>
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-xs">Update Product</button>
+            </form>
+
+            <div class="space-y-3">
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Orders Containing This Product</h3>
+                <div id="productOrdersList" class="space-y-2">
+                    <!-- Dynamic orders for this product -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= MODAL: ORDER FULL DETAILS VIEW ================= -->
+    <div id="orderDetailModal" class="fixed inset-0 bg-white z-50 hidden flex flex-col overflow-y-auto max-w-md mx-auto">
+        <div class="px-5 py-4 flex items-center justify-between border-b border-slate-100 bg-white sticky top-0 z-10">
+            <button onclick="closeOrderModal()" class="p-2 -ml-2 text-slate-700"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+            <h2 id="modalOrderIdTitle" class="text-xs font-bold text-slate-900 uppercase tracking-wider">Order Details</h2>
+            <div class="w-5"></div>
+        </div>
+        <div class="p-5 space-y-4 pb-20 text-xs">
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
+                <h3 class="font-bold text-slate-900 uppercase text-[10px] tracking-wider">Customer Contact Info</h3>
+                <p><strong>Name:</strong> <span id="mCustName"></span></p>
+                <p><strong>Phone:</strong> <span id="mCustPhone"></span></p>
+                <p><strong>WhatsApp:</strong> <span id="mCustWhatsapp"></span></p>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
+                <h3 class="font-bold text-slate-900 uppercase text-[10px] tracking-wider">Shipping Address</h3>
+                <p><strong>City:</strong> <span id="mCustCity"></span></p>
+                <p><strong>Area / Block:</strong> <span id="mCustArea"></span></p>
+                <p><strong>Full Address:</strong> <span id="mCustAddress"></span></p>
+                <p><strong>Landmark:</strong> <span id="mCustLandmark"></span></p>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
+                <h3 class="font-bold text-slate-900 uppercase text-[10px] tracking-wider">Ordered Items & Total</h3>
+                <div id="mOrderItemsList" class="space-y-1 divide-y divide-slate-200/50 pt-1"></div>
+                <div class="flex justify-between font-bold pt-2 border-t border-slate-200">
+                    <span>Total Amount:</span>
+                    <span id="mOrderTotal" class="text-emerald-600"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- ================= BOTTOM NAVIGATION BAR (5 BUTTONS) ================= -->
     <nav class="fixed bottom-0 inset-x-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex items-center justify-around z-40">
         <button onclick="switchTab('dashboard')" class="nav-btn active flex flex-col items-center gap-1 text-slate-900" data-tab="dashboard">
@@ -315,8 +394,101 @@
             reader.readAsDataURL(file);
         }
 
-        function deleteProduct(docId) {
+        function deleteProduct(event, docId) {
+            event.stopPropagation();
             if(confirm("Delete item?")) db.collection("products").doc(docId).delete();
+        }
+
+        // Open Product Detail & Edit Modal
+        function openProductModal(docId) {
+            const p = allProducts.find(item => item.docId === docId);
+            if(!p) return;
+
+            document.getElementById('editDocId').value = p.docId;
+            document.getElementById('editName').value = p.name || '';
+            document.getElementById('editPrice').value = p.price || 0;
+            document.getElementById('editStock').value = p.stock || 0;
+            document.getElementById('editDesc').value = p.description || '';
+            document.getElementById('editImagePreview').src = p.image || '';
+
+            // Filter orders containing this product (match by product id or name)
+            const matchedOrders = allOrders.filter(o => (o.items || []).some(i => i.id === p.id || i.name === p.name));
+            const ordContainer = document.getElementById('productOrdersList');
+            ordContainer.innerHTML = '';
+
+            if(matchedOrders.length === 0) {
+                ordContainer.innerHTML = `<p class="text-xs text-slate-400 py-3 text-center">No orders for this product yet.</p>`;
+            } else {
+                matchedOrders.forEach(o => {
+                    const c = o.customerInfo || {};
+                    ordContainer.insertAdjacentHTML('beforeend', `
+                        <div onclick="openOrderModal('${o.docId}')" class="bg-white p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 space-y-1">
+                            <div class="flex justify-between font-bold text-slate-900">
+                                <span>${o.orderId}</span>
+                                <span class="text-emerald-600">Rs. ${(o.totalAmount || 0).toLocaleString()}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-600"><strong>Customer:</strong> ${c.name || 'N/A'} (${c.phone || 'N/A'})</p>
+                            <p class="text-[10px] text-slate-400">Time: ${o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}</p>
+                        </div>
+                    `);
+                });
+            }
+
+            document.getElementById('productDetailModal').classList.remove('hidden');
+        }
+
+        function closeProductModal() {
+            document.getElementById('productDetailModal').classList.add('hidden');
+        }
+
+        function handleUpdateProduct(e) {
+            e.preventDefault();
+            const docId = document.getElementById('editDocId').value;
+            const updatedData = {
+                name: document.getElementById('editName').value,
+                price: Number(document.getElementById('editPrice').value),
+                stock: Number(document.getElementById('editStock').value),
+                description: document.getElementById('editDesc').value
+            };
+
+            db.collection("products").doc(docId).update(updatedData).then(() => {
+                alert("⚡ Product updated successfully!");
+                closeProductModal();
+            });
+        }
+
+        // Open Order Full Details Modal
+        function openOrderModal(docId) {
+            const o = allOrders.find(item => item.docId === docId);
+            if(!o) return;
+            const c = o.customerInfo || {};
+
+            document.getElementById('modalOrderIdTitle').innerText = `Order: ${o.orderId || 'N/A'}`;
+            document.getElementById('mCustName').innerText = c.name || 'N/A';
+            document.getElementById('mCustPhone').innerText = c.phone || 'N/A';
+            document.getElementById('mCustWhatsapp').innerText = c.whatsapp || 'N/A';
+            document.getElementById('mCustCity').innerText = c.city || 'N/A';
+            document.getElementById('mCustArea').innerText = c.area || 'N/A';
+            document.getElementById('mCustAddress').innerText = c.address || 'N/A';
+            document.getElementById('mCustLandmark').innerText = c.landmark || 'None';
+            document.getElementById('mOrderTotal').innerText = `Rs. ${(o.totalAmount || 0).toLocaleString()}`;
+
+            const itemsContainer = document.getElementById('mOrderItemsList');
+            itemsContainer.innerHTML = '';
+            (o.items || []).forEach(i => {
+                itemsContainer.insertAdjacentHTML('beforeend', `
+                    <div class="flex justify-between py-1.5">
+                        <span>${i.name} (x${i.qty})</span>
+                        <span class="font-bold">Rs. ${(i.price * i.qty).toLocaleString()}</span>
+                    </div>
+                `);
+            });
+
+            document.getElementById('orderDetailModal').classList.remove('hidden');
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderDetailModal').classList.add('hidden');
         }
 
         // Render Orders List with Full Details
@@ -333,7 +505,7 @@
                 const itemsList = (o.items || []).map(i => `${i.name} (x${i.qty})`).join(', ');
 
                 container.insertAdjacentHTML('beforeend', `
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 text-xs">
+                    <div onclick="openOrderModal('${o.docId}')" class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2 text-xs cursor-pointer hover:bg-slate-100/80 transition">
                         <div class="flex justify-between items-center">
                             <span class="font-bold text-slate-900">${o.orderId || 'N/A'}</span>
                             <span class="font-bold text-emerald-600">Rs. ${(o.totalAmount || 0).toLocaleString()}</span>
@@ -343,7 +515,7 @@
                             <p><strong>Address:</strong> ${c.address || 'N/A'}, ${c.city || 'N/A'}</p>
                             <p><strong>Items:</strong> ${itemsList}</p>
                         </div>
-                        <div class="flex justify-between items-center pt-2 border-t border-slate-200/60">
+                        <div class="flex justify-between items-center pt-2 border-t border-slate-200/60" onclick="event.stopPropagation()">
                             <span class="text-[10px] text-slate-400">${o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}</span>
                             <select onchange="updateOrderStatus('${o.docId}', this.value)" class="text-[10px] font-bold px-2 py-1 rounded-lg bg-white border border-slate-200 focus:outline-none">
                                 <option value="pending" ${o.status==='pending'?'selected':''}>Pending</option>
@@ -362,7 +534,7 @@
             db.collection("orders").doc(docId).update({ status: newStatus });
         }
 
-        // Render Products Grid (4x4 or 2-column clean mobile grid)
+        // Render Products Grid
         function renderProductsGrid(prods) {
             const grid = document.getElementById('productsGrid');
             grid.innerHTML = '';
@@ -373,14 +545,14 @@
 
             prods.forEach(p => {
                 grid.insertAdjacentHTML('beforeend', `
-                    <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 space-y-1.5 relative group">
+                    <div onclick="openProductModal('${p.docId}')" class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100 space-y-1.5 relative group cursor-pointer hover:bg-slate-100 transition">
                         <div class="w-full aspect-square rounded-xl overflow-hidden bg-slate-200">
                             <img src="${p.image}" class="w-full h-full object-cover">
                         </div>
                         <h4 class="text-xs font-bold text-slate-800 truncate">${p.name}</h4>
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-semibold text-slate-900">Rs. ${(p.price || 0).toLocaleString()}</span>
-                            <button onclick="deleteProduct('${p.docId}')" class="p-1 bg-rose-50 text-rose-500 rounded-lg"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="deleteProduct(event, '${p.docId}')" class="p-1 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-100"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                         </div>
                     </div>
                 `);
